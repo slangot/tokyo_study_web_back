@@ -5,31 +5,47 @@ const cors = require('cors')
 const morgan = require('morgan')
 const routes = require('./routes/index')
 
-const port = process.env.PORT || 3001
+const port = process.env.PORT || 5000
 app.use(express.json())
 
-connection.connect(err => {
-  if (err) {
-    console.error('error connecting: ' + err.stack)
-  } else {
-    console.log('connected as id ' + connection.threadId)
-  }
-})
+const connectToDatabase = () => {
+  connection.connect(err => {
+    if (err) {
+      console.error('Error connecting to the database:', err.stack);
+      setTimeout(connectToDatabase, 2000); // Reconnect after 2 seconds
+    } else {
+      console.log('Connected to the database as id', connection.threadId);
+    }
+  });
 
-const allowedOrigins = ['http://tsw.konecton.com', 'https://tsw.konecton.com']
+  connection.on('error', function (err) {
+    console.error('Database error', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      connectToDatabase();  // Reconnect if the connection is lost
+    } else {
+      throw err;
+    }
+  });
+};
+
+connectToDatabase();
+
+const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com']
 
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('ORIGIN : ', origin)
     if (!origin || allowedOrigins.includes(origin)) {
-      console.log('ORIGIN ACCEPTED')
       callback(null, true)
     } else {
       callback(new Error('UnauthorizedError'))
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // Si vous utilisez des cookies ou des sessions
   optionsSuccessStatus: 200
 }
+
 app.use(cors(corsOptions))
 
 app.use(morgan('tiny'))

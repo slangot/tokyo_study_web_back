@@ -39,6 +39,69 @@ router.get('/count', (req, res) => {
   });
 })
 
+router.get('/detailed', (req, res) => {
+  const { search } = req.query;
+  const searchLike = `%${search}%`;
+  console.log('search:', search);
+
+  if (!search) {
+    return res.status(400).json({ error: 'Search parameter is required' });
+  }
+
+  // Promesse pour la requête kanji
+  const getKanji = new Promise((resolve, reject) => {
+    const kanjiQuery = 'SELECT * FROM kanji WHERE kanji = ?';
+    mysql.query(kanjiQuery, [search], (err, results) => {
+      if (err) {
+        reject('Error fetching kanji: ' + err);
+      } else {
+        resolve(results[0]);
+      }
+    });
+  });
+
+  // Promesse pour la requête vocabulary_extra
+  const getVocabulary = new Promise((resolve, reject) => {
+    const vocabularyQuery = "SELECT * FROM vocabulary_extra WHERE kanji LIKE ? LIMIT 10";
+    mysql.query(vocabularyQuery, [searchLike], (err, results) => {
+      if (err) {
+        reject('Error fetching vocabulary: ' + err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+  // Promesse pour la requête sentence_extra
+  const getSentences = new Promise((resolve, reject) => {
+    const sentenceQuery = 'SELECT * FROM sentence_extra WHERE kanji LIKE ? LIMIT 5';
+    mysql.query(sentenceQuery, [searchLike], (err, results) => {
+      if (err) {
+        reject('Error fetching sentences: ' + err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+  // Exécuter toutes les promesses et envoyer la réponse une fois toutes résolues
+  Promise.all([getKanji, getVocabulary, getSentences])
+    .then(([kanji, vocabulary, sentences]) => {
+      if (!kanji) {
+        return res.status(404).json({ error: 'Kanji not found' });
+      }
+      res.status(200).json({
+        kanji,
+        vocabulary,
+        sentences
+      });
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    });
+});
+
 router.post('/kanji', (req, res) => {
 })
 
