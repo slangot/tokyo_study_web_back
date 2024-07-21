@@ -46,6 +46,34 @@ router.get('/count/:level', (req, res) => {
   });
 })
 
+router.get('/search', (req, res) => {
+  const { word } = req.query;
+  let sql = `SELECT * FROM sentence 
+  WHERE kanji LIKE '%${word}%' 
+  OR japanese LIKE '%${word}%' 
+  OR english LIKE '%${word}%' 
+  OR french LIKE '%${word}%'
+  OR romaji LIKE '%${word}%'
+  OR words LIKE '%${word}%'
+  UNION ALL
+  SELECT * FROM sentence_extra
+  WHERE kanji LIKE '%${word}%' 
+  OR japanese LIKE '%${word}%' 
+  OR english LIKE '%${word}%' 
+  OR french LIKE '%${word}%'
+  OR romaji LIKE '%${word}%'
+  OR words LIKE '%${word}%'
+  LIMIT 50
+  `
+  mysql.query(sql, (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error retrieving sentence' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
 router.post('/sentence', (req, res) => {
 })
 

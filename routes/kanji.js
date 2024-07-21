@@ -6,16 +6,37 @@ const router = express.Router();
 router.get('/', (req, res) => {
   // router.get('/kanji/:params', (req, res) => {
   // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
-  const { level, limit } = req.query;
+  const { level, revision, limit } = req.query;
   let sql = 'SELECT * FROM kanji';
+
+  const conditions = [];
+  const values = [];
+
   if (level) {
-    sql += ` WHERE level = ${parseInt(level)}`;
-  }
-  if (limit) {
-    sql += ` ORDER BY RAND() LIMIT ${parseInt(limit)}`;
+    conditions.push('level = ?');
+    values.push(parseInt(level));
   }
 
-  mysql.query(sql, (err, result) => {
+  if (revision) {
+    if (revision === 'new') {
+      conditions.push('(status IS NULL OR status = "")');
+    } else {
+      conditions.push('status = ?');
+      values.push(revision);
+    }
+  }
+
+  if (conditions.length > 0) {
+    sql += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  if (limit) {
+    sql += ` ORDER BY RAND() LIMIT ?`;
+    values.push(parseInt(limit));
+  }
+
+
+  mysql.query(sql, values, (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error retrieving kanji' });
     } else {
@@ -42,7 +63,6 @@ router.get('/count', (req, res) => {
 router.get('/detailed', (req, res) => {
   const { search } = req.query;
   const searchLike = `%${search}%`;
-  console.log('search:', search);
 
   if (!search) {
     return res.status(400).json({ error: 'Search parameter is required' });
@@ -102,10 +122,46 @@ router.get('/detailed', (req, res) => {
     });
 });
 
+router.get('/search', (req, res) => {
+  const { word } = req.query;
+  let sql = `SELECT * FROM kanji 
+  WHERE kanji LIKE '%${word}%' 
+  OR kunyomi LIKE '%${word}%' 
+  OR onyomi LIKE '%${word}%' 
+  OR english LIKE '%${word}%' 
+  OR french LIKE '%${word}%'
+  LIMIT 50
+  `
+  mysql.query(sql, (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error retrieving kanji' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
 router.post('/kanji', (req, res) => {
 })
 
-router.put('/kanji/:id', (req, res) => {
+router.put('/update', (req, res) => {
+  const { id, status, jlpt } = req.query;
+  const statusToUpdate = status ? status : null
+  console.log('status : ', status)
+  let updateQuery = 'UPDATE kanji SET'
+  if (jlpt === '1') {
+    updateQuery += ' jlpt_status'
+  } else {
+    updateQuery += ' status'
+  }
+  updateQuery += ' = ?, last_reading = NOW() WHERE id = ?';
+  mysql.query(updateQuery, [status, id], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error updating kanji' });
+    } else {
+      res.status(200).send(result);
+    }
+  });
 })
 
 router.delete('/kanji/:id', (req, res) => {
