@@ -75,7 +75,23 @@ router.get('/search', (req, res) => {
 router.post('/', (req, res) => {
 })
 
-router.put('/:id', (req, res) => {
+router.put('/update', (req, res) => {
+  const { id, status, jlpt } = req.query;
+
+  let updateQuery = 'UPDATE vocabulary SET'
+  if (jlpt == '1') {
+    updateQuery += ' jlpt_status'
+  } else {
+    updateQuery += ' status'
+  }
+  updateQuery += ' = ?, last_reading = NOW() WHERE id = ?';
+  mysql.query(updateQuery, [status, id], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error updating vocabulary' });
+    } else {
+      res.status(200).send(result);
+    }
+  });
 })
 
 router.delete('/:id', (req, res) => {

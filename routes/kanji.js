@@ -146,10 +146,8 @@ router.post('/kanji', (req, res) => {
 
 router.put('/update', (req, res) => {
   const { id, status, jlpt } = req.query;
-  const statusToUpdate = status ? status : null
-  console.log('status : ', status)
   let updateQuery = 'UPDATE kanji SET'
-  if (jlpt === '1') {
+  if (jlpt == '1') {
     updateQuery += ' jlpt_status'
   } else {
     updateQuery += ' status'
