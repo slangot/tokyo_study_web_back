@@ -6,17 +6,30 @@ const router = express.Router();
 router.get('/', (req, res) => {
   // router.get('/vocabulary/:params', (req, res) => {
   // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
-  const { level, limit } = req.query;
+  const { level, limit, revision } = req.query;
   let sql = 'SELECT * FROM';
+
   if (level === '6') {
     sql += ' vocabulary_extra';
   } else {
     sql += ' vocabulary';
   }
+
   sql += ` WHERE level = ${parseInt(level)}`;
+
+  if (revision) {
+    if (revision === 'new') {
+      sql += ' AND (status IS NULL OR status = "")';
+    } else {
+      sql += ` AND status = "${revision}"`;
+    }
+  }
+
   if (limit) {
     sql += ` ORDER BY RAND() LIMIT ${parseInt(limit)}`;
   }
+
+  console.log(sql)
 
   mysql.query(sql, (err, result) => {
     if (err) {
@@ -76,15 +89,18 @@ router.post('/', (req, res) => {
 })
 
 router.put('/update', (req, res) => {
-  const { id, status, jlpt } = req.query;
+  const { id, status, jlptStatus, kanjiStatus } = req.query;
 
   let updateQuery = 'UPDATE vocabulary SET'
-  if (jlpt == '1') {
+  if (jlptStatus) {
     updateQuery += ' jlpt_status'
+  } else if (kanjiStatus) {
+    updateQuery += ' kanji_status'
   } else {
     updateQuery += ' status'
   }
   updateQuery += ' = ?, last_reading = NOW() WHERE id = ?';
+
   mysql.query(updateQuery, [status, id], (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error updating vocabulary' });
