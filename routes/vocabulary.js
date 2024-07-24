@@ -20,6 +20,8 @@ router.get('/', (req, res) => {
   if (revision) {
     if (revision === 'new') {
       sql += ' AND (status IS NULL OR status = "")';
+    } else if (revision === 'study') {
+      sql += ' AND is_studied = 1'
     } else {
       sql += ` AND status = "${revision}"`;
     }
@@ -29,7 +31,6 @@ router.get('/', (req, res) => {
     sql += ` ORDER BY RAND() LIMIT ${parseInt(limit)}`;
   }
 
-  console.log(sql)
 
   mysql.query(sql, (err, result) => {
     if (err) {

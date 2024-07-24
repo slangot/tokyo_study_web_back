@@ -20,6 +20,8 @@ router.get('/', (req, res) => {
   if (revision) {
     if (revision === 'new') {
       conditions.push('(status IS NULL OR status = "")');
+    } else if (revision === 'study') {
+      conditions.push('is_studied = 1')
     } else {
       conditions.push('status = ?');
       values.push(revision);
@@ -145,9 +147,9 @@ router.post('/kanji', (req, res) => {
 })
 
 router.put('/update', (req, res) => {
-  const { id, status, jlpt } = req.query;
+  const { id, status, jlptStatus } = req.query;
   let updateQuery = 'UPDATE kanji SET'
-  if (jlpt == '1') {
+  if (jlptStatus == '1') {
     updateQuery += ' jlpt_status'
   } else {
     updateQuery += ' status'
