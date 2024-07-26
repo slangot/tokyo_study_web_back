@@ -22,6 +22,8 @@ router.get('/', (req, res) => {
       conditions.push('(status IS NULL OR status = "")');
     } else if (revision === 'study') {
       conditions.push('is_studied = 1')
+    } else if (revision === 'jlpt') {
+      conditions.push('jlpt_status = "done"')
     } else {
       conditions.push('status = ?');
       values.push(revision);

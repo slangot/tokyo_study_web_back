@@ -22,6 +22,8 @@ router.get('/', (req, res) => {
       sql += ' AND (status IS NULL OR status = "")';
     } else if (revision === 'study') {
       sql += ' AND is_studied = 1'
+    } else if (revision === 'jlpt') {
+      sql += ' AND jlpt_status = "done"'
     } else {
       sql += ` AND status = "${revision}"`;
     }
