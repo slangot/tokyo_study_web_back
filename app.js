@@ -52,8 +52,10 @@ app.use(morgan('tiny'))
 app.use(express.urlencoded({ extended: true }))
 
 app.use('/kanji', routes.kanji)
-app.use('/vocabulary', routes.vocabulary)
+app.use('/pro', routes.pro)
 app.use('/sentence', routes.sentence)
+app.use('/vocabulary', routes.vocabulary)
+app.use('/user', routes.user)
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`)
