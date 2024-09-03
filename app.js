@@ -51,6 +51,7 @@ app.use(cors(corsOptions))
 app.use(morgan('tiny'))
 app.use(express.urlencoded({ extended: true }))
 
+app.use('/auth', routes.auth)
 app.use('/kanji', routes.kanji)
 app.use('/pro', routes.pro)
 app.use('/sentence', routes.sentence)
