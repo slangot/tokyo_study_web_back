@@ -6,7 +6,7 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   const { plan, phone } = req.body
   try {
-    const registerQuery = 'INSERT INTO pro (plan, phone, start_plan, end_plan, active, reported) VALUES (?, ?, NOW(), NOW() + INTERVAL 1 MONTH, 0, 0)'
+    const registerQuery = 'INSERT INTO pro (plan, phone, is_boosted, students_number, start_plan, end_plan, active, reported) VALUES (?, ?, 0, 0, NOW(), NOW() + INTERVAL 1 MONTH, 0, 0)'
     const values = [plan, phone]
     mysql.query(registerQuery, values, (err, result) => {
       if (err) {

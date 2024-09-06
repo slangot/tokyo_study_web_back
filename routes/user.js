@@ -52,7 +52,7 @@ router.get('/id', (req, res) => {
 })
 
 router.post('/register', async (req, res) => {
-  const { pro_id, name, nickname, email, password, role } = req.body
+  const { pro_id, name, nickname, email, password, role, plan } = req.body
   if (!password) {
     return res.status(400).json({ error: 'Password is required' });
   }
@@ -60,8 +60,8 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10
     const passwordEncrypted = await bcrypt.hash(password, saltRounds)
 
-    const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, register_date, pending, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, NULL, 0)'
-    const values = [pro_id, name, nickname, email, passwordEncrypted, role]
+    const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, token, plan, ads, register_date, pending, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 1, NOW(), 1, NULL, 0)'
+    const values = [pro_id, name, nickname, email, passwordEncrypted, role, plan]
     mysql.query(registerQuery, values, (err, result) => {
       if (err) {
         res.status(500).json({ error: 'Error creating user' });
