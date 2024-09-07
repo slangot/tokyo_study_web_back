@@ -30,7 +30,8 @@ const connectToDatabase = () => {
 
 connectToDatabase();
 
-const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com']
+// const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com']
+const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com', 'http://localhost:3000', 'http://192.168.1.83:3000', '192.168.1.83:3000', 'https://192.168.1.83:3000']
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -53,6 +54,7 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use('/auth', routes.auth)
 app.use('/kanji', routes.kanji)
+app.use('/kanji_keys', routes.kanji_keys)
 app.use('/pro', routes.pro)
 app.use('/sentence', routes.sentence)
 app.use('/vocabulary', routes.vocabulary)
