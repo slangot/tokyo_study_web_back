@@ -13,6 +13,19 @@ const calculateToken = (email = '') => {
   })
 }
 
+// //Get token from req
+const getToken = req => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.split(' ')[0] === 'Bearer'
+  ) {
+    return req.headers.authorization.split(' ')[1]
+  } else if (req.query && req.query.token) {
+    return req.query.token
+  }
+  return null
+}
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
   if (!email || !password) {
@@ -26,10 +39,6 @@ router.post('/login', async (req, res) => {
       } else {
         const data = result[0]
         const hashedPassword = data.password
-        const saltRounds = 10
-        const passwordEncrypted = await bcrypt.hash(password, saltRounds)
-        console.log('hashedPassword : ', hashedPassword)
-        console.log('passwordEncrypted : ', passwordEncrypted)
         bcrypt.compare(password, hashedPassword).then((isValid) => {
           if (!isValid) {
             return res.status(502).send('Wrong password')
@@ -41,7 +50,8 @@ router.post('/login', async (req, res) => {
               nickname: data.nickname,
               email: data.email,
               role: data.role,
-              token: calculateToken(data.email)
+              token: data.token,
+              connectionToken: calculateToken(data.email)
             }
             res.status(200).json({ data: userData })
           }
