@@ -88,6 +88,28 @@ router.get('/search', (req, res) => {
   })
 })
 
+router.get('/verb', (req, res) => {
+  const sql = `SELECT * FROM verb ORDER BY RAND() LIMIT 1`
+  mysql.query(sql, (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error retrieving verb' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
+router.get('/adjective', (req, res) => {
+  const sql = `SELECT * FROM vocabulary WHERE categories = "adjective" ORDER BY RAND() LIMIT 1`
+  mysql.query(sql, (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error retrieving verb' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
 router.post('/', (req, res) => {
 })
 
@@ -96,13 +118,16 @@ router.put('/update', (req, res) => {
 
   let updateQuery = 'UPDATE vocabulary SET'
   if (jlptStatus) {
-    updateQuery += ' jlpt_status'
+    updateQuery += ' jlpt_status = ?,'
+    if (jlptStatus !== 'done') {
+      updateQuery += '  is_studied = 1,'
+    }
   } else if (kanjiStatus) {
-    updateQuery += ' kanji_status'
+    updateQuery += ' kanji_status = ?,'
   } else {
-    updateQuery += ' status'
+    updateQuery += ' status = ?,'
   }
-  updateQuery += ' = ?, last_reading = NOW() WHERE id = ?';
+  updateQuery += ' last_reading = NOW() WHERE id = ?';
 
   mysql.query(updateQuery, [status, id], (err, result) => {
     if (err) {
