@@ -74,6 +74,18 @@ router.post('/register', async (req, res) => {
   }
 })
 
+router.put('/tokenManager', (req, res) => {
+  const { tokenNumber, userId } = req.body
+  const query = 'UPDATE user SET token = ? WHERE id = ?'
+  mysql.query(query, [parseInt(tokenNumber), parseInt(userId)], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error updating user token' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
 router.put('/update', (req, res) => {
 })
 
