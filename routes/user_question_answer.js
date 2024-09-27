@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
 
       // Promesse pour la requête l'id question_answer.question_id
       const getQuestion = new Promise((resolve, reject) => {
-        const questionQuery = "SELECT * FROM new_sentence WHERE id = ?";
+        const questionQuery = "SELECT * FROM sentence WHERE id = ?";
         mysql.query(questionQuery, [questionAnswerId.question_id], (err, results) => {
           if (err) {
             reject('Error fetching question: ' + err);
@@ -38,7 +38,7 @@ router.get('/', (req, res) => {
 
       // Promesse pour la requête question_answer.answer_id
       const getAnswer = new Promise((resolve, reject) => {
-        const answerQuery = "SELECT * FROM new_sentence WHERE id = ?";
+        const answerQuery = "SELECT * FROM sentence WHERE id = ?";
         mysql.query(answerQuery, [questionAnswerId.answer_id], (err, results) => {
           if (err) {
             reject('Error fetching answer: ' + err);
@@ -62,7 +62,7 @@ router.get('/', (req, res) => {
             const idsToExclude = [questionAnswerId.question_id, ...relatedAnswerIds];
 
             // Requête pour récupérer les autres phrases en excluant ces `id`
-            const othersQuery = `SELECT * FROM new_sentence WHERE id NOT IN (${idsToExclude.join(', ')}) ORDER BY RAND() LIMIT 3`;
+            const othersQuery = `SELECT * FROM sentence WHERE id NOT IN (${idsToExclude.join(', ')}) ORDER BY RAND() LIMIT 3`;
             mysql.query(othersQuery, (err, results) => {
               if (err) {
                 reject('Error fetching other sentences: ' + err);
