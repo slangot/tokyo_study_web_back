@@ -3,6 +3,52 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+router.get('/jlpt', async (req, res) => {
+  const { level, limit, revision, userId } = req.query;
+
+  const getJLPTKanji = () => {
+    let query = 'SELECT * FROM kanji WHERE level = ?';
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, [level], (err, results) => {
+        if (err) {
+          return reject('Error fetching all selected JLPT level: ' + err);
+        }
+        resolve(results);
+      });
+    });
+  };
+
+  const getUserStatus = (id) => {
+    let query = 'SELECT * FROM user_stats_kanji WHERE user_id = ? AND kanji_id = ?'
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, [userId, id], (err, results) => {
+        if (err) {
+          return reject('Error fetching user selected kanji stat: ' + err);
+        }
+        resolve(results[0]);
+      });
+    });
+  };
+
+  try {
+    const allJLPTSelectedLevel = await getJLPTKanji();
+    for (const element of allJLPTSelectedLevel) {
+      const existingStat = await getUserStatus(element.id);
+      if (existingStat) {
+        element.status = existingStat.status;
+      } else {
+        element.status = 'not done';
+      }
+    }
+    res.status(200).send(allJLPTSelectedLevel);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+})
+
 router.get('/', (req, res) => {
   // router.get('/kanji/:params', (req, res) => {
   // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
@@ -145,8 +191,6 @@ router.get('/search', (req, res) => {
   })
 })
 
-router.post('/kanji', (req, res) => {
-})
 
 router.put('/update', (req, res) => {
   const { id, status, jlptStatus } = req.query;

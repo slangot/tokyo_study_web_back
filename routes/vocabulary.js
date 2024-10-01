@@ -3,6 +3,54 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+router.get('/jlpt', async (req, res) => {
+  const { level, limit, revision, userId } = req.query;
+
+  const getJLPTVocabulary = () => {
+    let query = 'SELECT * FROM vocabulary WHERE level = ?';
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, [level], (err, results) => {
+        if (err) {
+          return reject('Error fetching all selected JLPT level: ' + err);
+        }
+        resolve(results);
+      });
+    });
+  };
+
+  const getUserStatus = (id) => {
+    let query = 'SELECT * FROM user_stats_vocabulary WHERE user_id = ? AND vocabulary_id = ?'
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, [userId, id], (err, results) => {
+        if (err) {
+          return reject('Error fetching user selected vocabulary stat: ' + err);
+        }
+        resolve(results[0]);
+      });
+    });
+  };
+
+  try {
+    const allJLPTSelectedLevel = await getJLPTVocabulary();
+    for (const element of allJLPTSelectedLevel) {
+      const existingStat = await getUserStatus(element.id);
+      if (existingStat) {
+        element.status = existingStat.status;
+        element.kanji_status = existingStat.kanji_status;
+      } else {
+        element.status = 'not done';
+        element.kanji_status = null;
+      }
+    }
+    res.status(200).send(allJLPTSelectedLevel);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+})
+
 router.get('/', (req, res) => {
   // router.get('/vocabulary/:params', (req, res) => {
   // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
@@ -111,31 +159,6 @@ router.get('/adjective', (req, res) => {
 })
 
 router.post('/', (req, res) => {
-})
-
-router.put('/update', (req, res) => {
-  const { id, status, jlptStatus, kanjiStatus } = req.query;
-
-  let updateQuery = 'UPDATE vocabulary SET'
-  if (jlptStatus) {
-    updateQuery += ' jlpt_status = ?,'
-    if (jlptStatus !== 'done') {
-      updateQuery += '  is_studied = 1,'
-    }
-  } else if (kanjiStatus) {
-    updateQuery += ' kanji_status = ?,'
-  } else {
-    updateQuery += ' status = ?,'
-  }
-  updateQuery += ' last_reading = NOW() WHERE id = ?';
-
-  mysql.query(updateQuery, [status, id], (err, result) => {
-    if (err) {
-      res.status(500).json({ error: 'Error updating vocabulary' });
-    } else {
-      res.status(200).send(result);
-    }
-  });
 })
 
 router.delete('/:id', (req, res) => {
