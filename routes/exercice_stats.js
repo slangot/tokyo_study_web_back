@@ -3,7 +3,7 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.post('/update', async (req, res) => {
   const { exerciceId, status, type, userId } = req.body;
 
   // Fonction pour obtenir une statistique existante
@@ -71,7 +71,7 @@ router.post('/', async (req, res) => {
     if (type === 'kanji') {
       query += 'user_stats_kanji SET status = ?, total_count = ?,';
     } else if (type === 'vocabulary') {
-      query += 'user_stats_vocabulary SET status = ?, total_count = ?,';
+      query += 'user_stats_vocabulary SET status = ?, total_count = ?,'
     } else if (type === 'sentence') {
       query += 'user_stats_sentence SET status = ?, total_count = ?,';
     } else if (type === 'listening') {
@@ -111,5 +111,37 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+router.post('/update-status', (req, res) => {
+  const { status, type, type_status, element_id, user_id } = req.body;
+
+  let updateQuery = 'UPDATE'
+
+  if (type === 'vocabulary') {
+    updateQuery += ' user_stats_vocabulary SET'
+  } else if (type === 'kanji') {
+    updateQuery += ' user_stats_kanji SET'
+  }
+
+  if (type_status === 'vocabularyStatus') {
+    updateQuery += ' status = ?'
+  } else if (type_status === 'kanjiStatus') {
+    updateQuery += ' kanji_status = ?'
+  }
+
+  if (type === 'vocabulary') {
+    updateQuery += ' WHERE user_id = ? AND vocabulary_id = ?';
+  } else if (type === 'kanji') {
+    updateQuery += ' WHERE user_id = ? AND kanji_id = ?';
+  }
+
+  mysql.query(updateQuery, [status, user_id, element_id], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: `Error updating ${type} ${type_status}` });
+    } else {
+      res.status(200).send(result);
+    }
+  });
+})
 
 module.exports = router
