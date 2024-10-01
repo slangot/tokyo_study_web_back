@@ -74,7 +74,41 @@ router.get('/search', (req, res) => {
   })
 })
 
-router.post('/sentence', (req, res) => {
+
+router.post('/new', (req, res) => {
+  const { data } = req.body
+
+  const sql = `INSERT INTO sentence 
+  (kanji, 
+  japanese,
+  english,
+  french,
+  italian,
+  german,
+  spanish,
+  romaji,
+  theme,
+  words,
+  grammar,
+  form,
+  tense,
+  direction,
+  level,
+  kanjiTag,
+  japaneseTag,
+  family,
+  reported,
+  comment) 
+  VALUES (?, ?, "", ?, "", "", "", "", "", ?, ?, ?, ?, ?, ?, ?, ?, "", 0, "")
+  `
+
+  mysql.query(sql, [data.kanji, data.japanese, data.french, data.words, data.grammar, data.form, data.tense, data.direction, data.level, data.kanjiTag, data.japaneseTag], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error adding new sentence' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
 })
 
 router.put('/sentence/:id', (req, res) => {

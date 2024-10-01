@@ -31,7 +31,7 @@ const connectToDatabase = () => {
 connectToDatabase();
 
 // const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com']
-const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com', 'http://localhost:3000', 'http://192.168.1.83:3000', '192.168.1.83:3000', 'https://192.168.1.83:3000']
+const allowedOrigins = ['http://www.tsw.konecton.com', 'https://www.tsw.konecton.com', 'http://tsw.konecton.com', 'https://tsw.konecton.com', 'http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.83:3000', '192.168.1.83:3000', 'https://192.168.1.83:3000', 'http://192.168.1.83', 'https://192.168.1.83']
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -44,7 +44,8 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // Si vous utilisez des cookies ou des sessions
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: true
 }
 
 app.use(cors(corsOptions))
@@ -53,6 +54,8 @@ app.use(morgan('tiny'))
 app.use(express.urlencoded({ extended: true }))
 
 app.use('/auth', routes.auth)
+app.use('/egs', routes.egs)
+app.use('/es', routes.es)
 app.use('/kanji', routes.kanji)
 app.use('/kanji_keys', routes.kanji_keys)
 app.use('/pro', routes.pro)

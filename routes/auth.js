@@ -46,9 +46,7 @@ router.post('/login', async (req, res) => {
             const userData = {
               id: data.id,
               pro_id: data.pro_id,
-              name: data.name,
               nickname: data.nickname,
-              email: data.email,
               role: data.role,
               token: data.token,
               connectionToken: calculateToken(data.email)
