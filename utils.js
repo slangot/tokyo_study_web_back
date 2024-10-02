@@ -1,19 +1,29 @@
-// Fonction pour obtenir la statistique d'un exercice sur le vobabulaire; les kanji ou les phrases 
+// Function to get unique statistic of vocabulary, kanji or sentence exercice 
 const getExistingStat = (mysql, type, userId, exerciceId) => {
   let query = 'SELECT * FROM ';
+  const values = [userId]
 
   if (type === 'kanji') {
     query += 'user_stats_kanji WHERE user_id = ? AND kanji_id = ?';
+    values.push(exerciceId)
   } else if (type === 'vocabulary') {
     query += 'user_stats_vocabulary WHERE user_id = ? AND vocabulary_id = ?';
+    values.push(exerciceId)
   } else if (type === 'sentence') {
     query += 'user_stats_sentence WHERE user_id = ? AND sentence_id = ?';
+    values.push(exerciceId)
   } else if (type === 'listening') {
     query += 'user_stats_listening WHERE user_id = ? AND question_id = ?';
+    values.push(exerciceId)
+  }
+  // Else for global exercice (date, time, number, verb, adjective)
+  else {
+    query += 'user_stats_global WHERE user_id = ? AND type = ?';
+    values.push(type)
   }
 
   return new Promise((resolve, reject) => {
-    mysql.query(query, [userId, exerciceId], (err, results) => {
+    mysql.query(query, values, (err, results) => {
       if (err) {
         return reject('Error fetching stat: ' + err);
       }
@@ -22,13 +32,27 @@ const getExistingStat = (mysql, type, userId, exerciceId) => {
   });
 };
 
-// Fonction pour insérer une nouvelle statistique d'un exercice sur le vobabulaire; les kanji ou les phrases
+// Function to insert new vocabulary, kanji or sentence exercice statistic
 const insertNewStat = (mysql, type, status, userId, exerciceId, statusType = null, statusOnly = false) => {
   let query = 'INSERT INTO ';
 
+  const insertValues = [
+    userId,
+    exerciceId,
+    status,
+  ];
+
+  const insertStatusOnlyValues = [
+    userId,
+    exerciceId,
+    statusType === 'status' ? status : 'not yet',
+  ]
+
   if (type === 'kanji') {
     query += 'user_stats_kanji (user_id, kanji_id, status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?)';
+    statusType === 'kanji_status' && insertStatusOnlyValues.push(status)
   } else if (type === 'vocabulary') {
+    insertValues.push(null)
     query += 'user_stats_vocabulary (user_id, vocabulary_id, status, kanji_status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?, ?)';
   } else if (type === 'sentence') {
     query += 'user_stats_sentence (user_id, sentence_id, status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?)';
@@ -36,25 +60,8 @@ const insertNewStat = (mysql, type, status, userId, exerciceId, statusType = nul
     query += 'user_stats_listening (user_id, question_id, status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?)';
   }
 
-  const insertValues = [
-    userId,
-    exerciceId,
-    status,
-    null,
-    1, // total_count
-    status === "correct" ? 1 : 0, // correct_count
-    status === "wrong" ? 1 : 0    // wrong_count
-  ];
-
-  const insertStatusOnlyValues = [
-    userId,
-    exerciceId,
-    statusType === 'status' ? status : 'not yet',
-    type === 'kanji' && (statusType === 'kanji_status' ? status : null),
-    0, // total_count
-    0, // correct_count
-    0 // wrong_count
-  ]
+  insertValues.push(1, status === "correct" ? 1 : 0, status === "wrong" ? 1 : 0)
+  insertStatusOnlyValues.push(0, 0, 0)
 
   return new Promise((resolve, reject) => {
     mysql.query(query, statusOnly ? insertStatusOnlyValues : insertValues, (err, results) => {
@@ -66,12 +73,37 @@ const insertNewStat = (mysql, type, status, userId, exerciceId, statusType = nul
   });
 };
 
-// Fonction pour mettre à jour une statistique existante
+// Function to insert new global exercice statistic (date, time, number)
+const insertNewGlobalStat = (mysql, userId, type, status) => {
+  let query = 'INSERT INTO user_stats_global (user_id, type, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?)';
+
+  const insertValues = [
+    userId,
+    type,
+    1, // total_count
+    status === "correct" ? 1 : 0, // correct_count
+    status === "wrong" ? 1 : 0    // wrong_count
+  ];
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, insertValues, (err, results) => {
+      if (err) {
+        return reject('Error inserting new stat: ' + err);
+      }
+      resolve(results);
+    });
+  });
+};
+
+// Function to update a statistic
 const updateStat = (mysql, existingStat, status, type, statusOnly = false, statusType = null) => {
   let query = 'UPDATE ';
+  const updateValues = [];
 
+  // table selection
   if (type === 'kanji') {
     query += 'user_stats_kanji SET status = ?';
+    updateValues.push(status)
   } else if (type === 'vocabulary') {
     if (statusType === 'vocabularyStatus') {
       query += 'user_stats_vocabulary SET status = ?'
@@ -80,14 +112,21 @@ const updateStat = (mysql, existingStat, status, type, statusOnly = false, statu
     } else {
       query += 'user_stats_vocabulary SET status = ?'
     }
+    updateValues.push(status)
   } else if (type === 'sentence') {
     query += 'user_stats_sentence SET status = ?';
+    updateValues.push(status)
   } else if (type === 'listening') {
     query += 'user_stats_listening SET status = ?';
+    updateValues.push(status)
+  }
+  // Else for global exercice (date, time, number, verb, adjective)
+  else {
+    query += 'user_stats_global SET type = ?'
+    updateValues.push(type)
   }
 
-  let updateValues = [status];
-
+  // status update only
   if (!statusOnly) {
     updateValues.push(existingStat.total_count + 1)
     query += ', total_count = ?'
@@ -102,7 +141,7 @@ const updateStat = (mysql, existingStat, status, type, statusOnly = false, statu
 
   query += ' WHERE id = ?'
   updateValues.push(existingStat.id)
-
+  query.replace('rmv_BG,', '')
   return new Promise((resolve, reject) => {
     mysql.query(query, updateValues, (err, results) => {
       if (err) {
@@ -113,4 +152,60 @@ const updateStat = (mysql, existingStat, status, type, statusOnly = false, statu
   });
 };
 
-module.exports = { getExistingStat, insertNewStat, updateStat }
+// Function to fetch limited user stats lines (for the JLPT List exercice)
+const getLimitedUserStatsLines = (mysql, limit, mode, type, userId) => {
+  let query = 'SELECT * FROM'
+  const values = []
+
+  if (type === 'kanji') {
+    query += ' user_stats_kanji'
+  } else if (type === 'vocabulary') {
+    query += ' user_stats_vocabulary'
+  }
+
+  if (mode === 'all') {
+    query += ' WHERE user_id = ?'
+    values.push(userId)
+  } else {
+    query += ' WHERE user_id = ? AND status = ?'
+    values.push(userId)
+    values.push(mode)
+  }
+
+  if (limit) {
+    query += ' ORDER BY RAND() LIMIT ?'
+    values.push(limit)
+  }
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, values, (err, results) => {
+      if (err) {
+        return reject('Error fetching limited user stats lines : ' + err);
+      }
+      resolve(results);
+    });
+  });
+};
+
+// Function to one limited element among kanji or vocabulary
+const getLimitedUserElement = (mysql, id, level, type) => {
+  let query = 'SELECT * FROM'
+  if (type === 'vocabulary') {
+    query += ' vocabulary'
+  } else if (type === 'kanji') {
+    query += ' kanji'
+  }
+
+  query += ' WHERE id = ? AND level = ?'
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, [id, level], (err, results) => {
+      if (err) {
+        return reject('Error fetching user selected element : ' + err);
+      }
+      resolve(results[0]);
+    });
+  });
+}
+
+module.exports = { getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, insertNewStat, insertNewGlobalStat, updateStat }

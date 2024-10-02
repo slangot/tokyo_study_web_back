@@ -68,8 +68,6 @@ router.get('/', (req, res) => {
   if (revision) {
     if (revision === 'new') {
       sql += ' AND (status IS NULL OR status = "")';
-    } else if (revision === 'study') {
-      sql += ' AND is_studied = 1'
     } else if (revision === 'jlpt') {
       sql += ' AND jlpt_status = "done"'
     } else {
@@ -89,6 +87,86 @@ router.get('/', (req, res) => {
       res.status(200).send(result);
     }
   });
+})
+
+router.post('/list', async (req, res) => {
+  // router.get('/vocabulary/:params', (req, res) => {
+  // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
+  const { level, limit, mode, type, userId } = req.body;
+
+  const getLimitedUserStatsLines = (limit, mode, type, userId) => {
+    let query = 'SELECT * FROM'
+    const values = []
+
+    if (type === 'kanji') {
+      query += ' user_stats_kanji'
+    } else if (type === 'vocabulary') {
+      query += ' user_stats_vocabulary'
+    }
+
+    if (mode === 'all') {
+      query += ' WHERE user_id = ?'
+      values.push(userId)
+    } else {
+      query += ' WHERE user_id = ? AND status = ?'
+      values.push(userId)
+      values.push(mode)
+    }
+
+    if (limit) {
+      query += ' ORDER BY RAND() LIMIT ?'
+      values.push(limit)
+    }
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, values, (err, results) => {
+        if (err) {
+          return reject('Error fetching limited user stats lines : ' + err);
+        }
+        resolve(results);
+      });
+    });
+  };
+
+  const getLimitedUserElement = (id, level, type) => {
+    let query = 'SELECT * FROM'
+    if (type === 'vocabulary') {
+      query += ' vocabulary'
+    } else if (type === 'kanji') {
+      query += ' kanji'
+    }
+
+    query += ' WHERE id = ? AND level = ?'
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, [id, level], (err, results) => {
+        if (err) {
+          return reject('Error fetching user selected element : ' + err);
+        }
+        resolve(results[0]);
+      });
+    });
+  }
+
+  try {
+    const existingLines = await getLimitedUserStatsLines(limit, mode, type, userId)
+    const selectedLines = []
+    if (existingLines) {
+      for (const line of existingLines) {
+        const fetchedLine = await getLimitedUserElement(line.id, level, type)
+        if (fetchedLine) {
+          fetchedLine.status = line.status
+          fetchedLine.kanji_status = line?.kanji_status
+          fetchedLine.statId = line.id
+          selectedLines.push(fetchedLine)
+        }
+      }
+      res.status(200).send(selectedLines);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 })
 
 router.get('/count', (req, res) => {

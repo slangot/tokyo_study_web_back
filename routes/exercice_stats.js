@@ -31,7 +31,6 @@ router.post('/update-status', async (req, res) => {
 
   try {
     const existingStat = await getExistingStat(mysql, type, user_id, element_id);
-
     if (!existingStat) {
       await insertNewStat(mysql, type, status, user_id, element_id, type_status, true);
       res.json({ message: 'New stat inserted successfully' });
