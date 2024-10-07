@@ -3,6 +3,7 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 const bcrypt = require('bcrypt')
+const { getProProfil, getProStudentsProfil, getUserProfil } = require('../utils')
 
 router.get('/', (req, res) => {
   // router.get('/vocabulary/:params', (req, res) => {
@@ -51,6 +52,36 @@ router.get('/id', (req, res) => {
   })
 })
 
+router.get('/profil', async (req, res) => {
+  const { id } = req.query
+
+  try {
+    const userProfil = await getUserProfil(mysql, id)
+    const result = []
+    if (!userProfil) {
+      res.status(404).json({ error: 'Error getting user with this id' });
+    } else {
+      result.push(userProfil)
+      if (userProfil.pro_id) {
+        const proProfil = await getProProfil(mysql, userProfil.pro_id, userProfil.role)
+        result.push(proProfil)
+        if (userProfil.role === 'pro') {
+          const studentsProfil = await getProStudentsProfil(mysql, userProfil.pro_id)
+          const students = {
+            students: studentsProfil
+          }
+          result.push(students)
+        }
+      }
+      res.status(200).json(result)
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+
+})
+
 router.post('/register', async (req, res) => {
   const { pro_id, name, nickname, email, password, role, plan } = req.body
   if (!password) {
@@ -60,7 +91,7 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10
     const passwordEncrypted = await bcrypt.hash(password, saltRounds)
 
-    const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, token, plan, ads, register_date, pending, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 1, NOW(), 1, NULL, 0)'
+    const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, token, plan, ads, register_date, pending, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, 10, ?, 1, NOW(), 1, NULL, 0)'
     const values = [pro_id, name, nickname, email, passwordEncrypted, role, plan]
     mysql.query(registerQuery, values, (err, result) => {
       if (err) {
@@ -80,6 +111,18 @@ router.put('/tokenManager', (req, res) => {
   mysql.query(query, [parseInt(tokenNumber), parseInt(userId)], (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error updating user token' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
+router.put('/plan', (req, res) => {
+  const { plan, userId } = req.body
+  const query = 'UPDATE user SET plan = ? WHERE id = ?'
+  mysql.query(query, [plan, parseInt(userId)], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error updating user plan' });
     } else {
       res.status(200).send(result);
     }

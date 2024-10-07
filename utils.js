@@ -208,4 +208,52 @@ const getLimitedUserElement = (mysql, id, level, type) => {
   });
 }
 
-module.exports = { getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, insertNewStat, insertNewGlobalStat, updateStat }
+// Function to get a prpfil information by its id
+const getUserProfil = (mysql, userId) => {
+  const query = 'SELECT id, pro_id, email, name, nickname, role, token, plan, ads, pending, reported FROM user WHERE id = ?'
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, [userId], (err, results) => {
+      if (err) {
+        return reject('Error fetching user profil: ' + err);
+      }
+      resolve(results[0])
+    })
+  })
+}
+
+// Function to get the pro profil of an user by its id
+const getProProfil = (mysql, proId, role) => {
+  let query = 'SELECT '
+  if (role === 'pro') {
+    query += 'id, plan, phone, is_boosted, students_number, start_plan, end_plan, active, reported FROM pro WHERE id = ?'
+  } else if (role === 'user') {
+    query += 'id, nickname FROM user WHERE pro_id = ? AND role = "pro"'
+  }
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, [proId], (err, results) => {
+      if (err) {
+        return reject('Error fetching pro user profil: ' + err);
+      }
+      resolve(results[0])
+    })
+  })
+}
+
+// Function to get all the students of a pro by its id
+const getProStudentsProfil = (mysql, proId) => {
+  let query = 'SELECT id, nickname, token, plan, reported FROM user WHERE pro_id = ? AND role = "user"'
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, [proId], (err, results) => {
+      if (err) {
+        return reject('Error fetching pro user profil: ' + err);
+      }
+      resolve(results)
+    })
+  })
+}
+
+
+module.exports = { getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, getProProfil, getProStudentsProfil, getUserProfil, insertNewStat, insertNewGlobalStat, updateStat }
