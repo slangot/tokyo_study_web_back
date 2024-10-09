@@ -124,8 +124,6 @@ router.post('/stats', async (req, res) => {
     const kanjiN4UsersCounters = manageStats('kanji', levelN4IdsKanjiStats, allUserKanjiStats)
     const kanjiN3UsersCounters = manageStats('kanji', levelN3IdsKanjiStats, allUserKanjiStats)
 
-    console.log('vocabularyN5UsersCounters : ', vocabularyN5UsersCounters)
-
     const userStatsCounters = {
       allN5Voc: levelN5IdsVocabularyStats.length,
       allN4Voc: levelN4IdsVocabularyStats.length,

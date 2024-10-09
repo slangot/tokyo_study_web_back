@@ -83,7 +83,7 @@ router.get('/profil', async (req, res) => {
 })
 
 router.post('/register', async (req, res) => {
-  const { pro_id, name, nickname, email, password, role, plan } = req.body
+  const { pro_id, name, nickname, email, password, role, plan, plan_grade } = req.body
   if (!password) {
     return res.status(400).json({ error: 'Password is required' });
   }
@@ -91,8 +91,8 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10
     const passwordEncrypted = await bcrypt.hash(password, saltRounds)
 
-    const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, token, plan, ads, register_date, pending, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, 10, ?, 1, NOW(), 1, NULL, 0)'
-    const values = [pro_id, name, nickname, email, passwordEncrypted, role, plan]
+    const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, tokens, daily_tokens plan, plan_grade, ads, register_date, pending, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, 10, 10, ?, ?, 1, NOW(), 1, NULL, 0)'
+    const values = [pro_id, name, nickname, email, passwordEncrypted, role, plan, plan_grade]
     mysql.query(registerQuery, values, (err, result) => {
       if (err) {
         res.status(500).json({ error: 'Error creating user' });
@@ -107,7 +107,7 @@ router.post('/register', async (req, res) => {
 
 router.put('/tokenManager', (req, res) => {
   const { tokenNumber, userId } = req.body
-  const query = 'UPDATE user SET token = ? WHERE id = ?'
+  const query = 'UPDATE user SET tokens = ? WHERE id = ?'
   mysql.query(query, [parseInt(tokenNumber), parseInt(userId)], (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error updating user token' });
@@ -118,9 +118,9 @@ router.put('/tokenManager', (req, res) => {
 })
 
 router.put('/plan', (req, res) => {
-  const { plan, userId } = req.body
-  const query = 'UPDATE user SET plan = ? WHERE id = ?'
-  mysql.query(query, [plan, parseInt(userId)], (err, result) => {
+  const { daily_tokens, plan, plan_grade, user_id } = req.body
+  const query = 'UPDATE user SET plan = ?, plan_grade = ?, daily_tokens = ? WHERE id = ?'
+  mysql.query(query, [plan, plan_grade, parseInt(daily_tokens), parseInt(user_id)], (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error updating user plan' });
     } else {

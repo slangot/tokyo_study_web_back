@@ -27,6 +27,20 @@ const getToken = req => {
 }
 
 router.post('/login', async (req, res) => {
+
+  const updateLatestConnection = (userId) => {
+    let query = 'UPDATE user SET last_connection = NOW() WHERE id = ?';
+
+    return new Promise((resolve, reject) => {
+      mysql.query(query, [userId], (err, results) => {
+        if (err) {
+          return reject('Error updating last connection : ' + err);
+        }
+        resolve(results);
+      });
+    });
+  };
+
   const { email, password } = req.body
   if (!email || !password) {
     return res.status(400).json({ error: 'Email or password missing' });
@@ -43,13 +57,16 @@ router.post('/login', async (req, res) => {
           if (!isValid) {
             return res.status(502).send('Wrong password')
           } else {
+            const updateLastConnection = updateLatestConnection(data.id)
             const userData = {
               id: data.id,
               pro_id: data.pro_id,
               nickname: data.nickname,
               role: data.role,
-              token: data.token,
+              tokens: data.tokens,
+              daily_tokens: data.daily_tokens,
               plan: data.plan,
+              plan_grade: data.plan_grade,
               connectionToken: calculateToken(data.email)
             }
             res.status(200).json({ data: userData })

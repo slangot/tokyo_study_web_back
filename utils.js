@@ -210,7 +210,7 @@ const getLimitedUserElement = (mysql, id, level, type) => {
 
 // Function to get a prpfil information by its id
 const getUserProfil = (mysql, userId) => {
-  const query = 'SELECT id, pro_id, email, name, nickname, role, token, plan, ads, pending, reported FROM user WHERE id = ?'
+  const query = 'SELECT id, pro_id, email, name, nickname, role, token, plan, plan_grade, ads, pending, reported FROM user WHERE id = ?'
 
   return new Promise((resolve, reject) => {
     mysql.query(query, [userId], (err, results) => {
@@ -243,7 +243,7 @@ const getProProfil = (mysql, proId, role) => {
 
 // Function to get all the students of a pro by its id
 const getProStudentsProfil = (mysql, proId) => {
-  let query = 'SELECT id, nickname, token, plan, reported FROM user WHERE pro_id = ? AND role = "user"'
+  let query = 'SELECT id, nickname, token, plan, plan_grade, reported FROM user WHERE pro_id = ? AND role = "user"'
 
   return new Promise((resolve, reject) => {
     mysql.query(query, [proId], (err, results) => {
