@@ -53,6 +53,7 @@ app.use(cors(corsOptions))
 app.use(morgan('tiny'))
 app.use(express.urlencoded({ extended: true }))
 
+app.use('/assets', express.static('assets'));
 app.use('/auth', routes.auth)
 app.use('/egs', routes.egs)
 app.use('/es', routes.es)
@@ -62,6 +63,7 @@ app.use('/kanji_keys', routes.kanji_keys)
 app.use('/pro', routes.pro)
 app.use('/uqa', routes.uqa)
 app.use('/sentence', routes.sentence)
+app.use('/story', routes.story)
 app.use('/vocabulary', routes.vocabulary)
 app.use('/user', routes.user)
 
