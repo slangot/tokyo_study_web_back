@@ -130,6 +130,43 @@ router.put('/plan', (req, res) => {
 })
 
 router.put('/update', (req, res) => {
+  const { id } = req.query;
+  const { ...otherColumns } = req.body
+  const updateColumn = async (id, columnName, columnValue) => {
+    const saltRounds = 10
+    let passwordEncrypted
+    let columnValueToUpdate = columnValue
+    if (columnName === 'password') {
+      passwordEncrypted = await bcrypt.hash(columnValue, saltRounds)
+      columnValueToUpdate = passwordEncrypted
+    }
+
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE user SET ${columnName} = ? WHERE id = ?`;
+      const sqlValues = [columnValueToUpdate, id];
+      mysql.query(sql, sqlValues, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  };
+
+  const updatePromises = Object.entries(otherColumns).map(([columnName, columnValue]) => {
+    if (columnValue) {
+      return updateColumn(id, columnName, columnValue);
+    }
+  });
+
+  Promise.all(updatePromises)
+    .then(results => {
+      res.status(200).json(results);
+    })
+    .catch(err => {
+      res.status(500).send('Error updating the profile');
+    });
 })
 
 router.delete('/:id', (req, res) => {
