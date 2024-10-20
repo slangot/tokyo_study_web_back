@@ -210,7 +210,7 @@ const getLimitedUserElement = (mysql, id, level, type) => {
 
 // Function to get a prpfil information by its id
 const getUserProfil = (mysql, userId) => {
-  const query = 'SELECT id, pro_id, email, name, nickname, role, tokens, daily_tokens, plan, plan_grade, ads, pending, reported FROM user WHERE id = ?'
+  const query = 'SELECT id, pro_id, email, name, nickname, role, tokens, daily_tokens, plan, plan_grade, ads, validate_account, reported FROM user WHERE id = ?'
 
   return new Promise((resolve, reject) => {
     mysql.query(query, [userId], (err, results) => {
@@ -255,5 +255,53 @@ const getProStudentsProfil = (mysql, proId) => {
   })
 }
 
+// Function to get existing user jlpt type manager row 
+const getExistingJlptManager = (mysql, type, userId) => {
+  let query = 'SELECT * FROM user_jlpt_manager WHERE user_id = ? AND type = ?';
+  const values = [userId, type]
 
-module.exports = { getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, getProProfil, getProStudentsProfil, getUserProfil, insertNewStat, insertNewGlobalStat, updateStat }
+  return new Promise((resolve, reject) => {
+    mysql.query(query, values, (err, results) => {
+      if (err) {
+        return reject('Error fetching jlpt manager row: ' + err);
+      }
+      resolve(results[0]);
+    });
+  });
+};
+
+// Function to insert new user jlpt type manager row
+const insertNewJlptManager = (mysql, type, userId) => {
+  let query = 'INSERT INTO user_jlpt_manager(user_id, type, study_start, study_limit) VALUES (?,?,0,10)';
+
+  const insertValues = [
+    userId,
+    type
+  ];
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, insertValues, (err, results) => {
+      if (err) {
+        return reject('Error inserting new jlpt manager row: ' + err);
+      }
+      resolve(results);
+    });
+  });
+};
+
+// Function to update an existing user jlpt type manager row 
+const updateExistingJlptManager = (newStudyLimit, mysql, rowId) => {
+  let query = 'UPDATE user_jlpt_manager SET study_limit = ? WHERE id = ?';
+  const updateValues = [newStudyLimit, rowId];
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, updateValues, (err, results) => {
+      if (err) {
+        return reject('Error updating existing jlpt manager row: ' + err);
+      }
+      resolve(results);
+    });
+  });
+};
+
+module.exports = { getExistingJlptManager, getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, getProProfil, getProStudentsProfil, getUserProfil, insertNewJlptManager, insertNewStat, insertNewGlobalStat, updateExistingJlptManager, updateStat }
