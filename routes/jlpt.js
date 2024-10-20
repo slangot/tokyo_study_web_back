@@ -2,7 +2,37 @@ require('dotenv').config();
 const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
-const { getLimitedUserElement, getLimitedUserStatsLines } = require('../utils')
+const { getLimitedUserElement, getLimitedUserStatsLines, getExistingJlptManager, insertNewJlptManager, updateExistingJlptManager } = require('../utils')
+
+router.get('/list-manager', async (req, res) => {
+  const { userId } = req.query
+  mysql.query('SELECT * FROM user_jlpt_manager WHERE user_id = ?', [parseInt(userId)], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Error selecting user jlpt' });
+    } else {
+      res.status(200).send(result);
+    }
+  })
+})
+
+router.post('/update-list-manager', async (req, res) => {
+  const { limit, type, user_id } = req.body
+
+  try {
+    const existingJlptManager = await getExistingJlptManager(mysql, type, user_id)
+
+    if (!existingJlptManager) {
+      await insertNewJlptManager(mysql, type, user_id)
+      res.status(200).json({ message: 'New jlpt manager row inserted successfully' });
+    } else {
+      await updateExistingJlptManager(limit, mysql, existingJlptManager.id)
+      res.status(200).json({ message: 'Jlpt manager row updated successfully' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+})
 
 // Route to update or create a statistic line
 router.post('/list', async (req, res) => {
