@@ -1,3 +1,5 @@
+//////// STATISTICS
+//
 // Function to get unique statistic of vocabulary, kanji or sentence exercice 
 const getExistingStat = (mysql, type, userId, exerciceId) => {
   let query = 'SELECT * FROM ';
@@ -187,7 +189,10 @@ const getLimitedUserStatsLines = (mysql, limit, mode, type, userId) => {
   });
 };
 
-// Function to one limited element among kanji or vocabulary
+
+//////// EXERCICES ELEMENTS
+//
+// Function to get one limited element among kanji or vocabulary
 const getLimitedUserElement = (mysql, id, level, type) => {
   let query = 'SELECT * FROM'
   if (type === 'vocabulary') {
@@ -208,6 +213,51 @@ const getLimitedUserElement = (mysql, id, level, type) => {
   });
 }
 
+// Function to get randomized elements among kanji or vocabulary
+const getExercice = (mysql, level, limit, type) => {
+  let query = 'SELECT * FROM'
+  if (type === 'vocabulary') {
+    query += ' vocabulary'
+  } else if (type === 'kanji') {
+    query += ' kanji'
+  }
+
+  query += ' WHERE level = ? ORDER BY RAND() LIMIT ?'
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, [level, limit], (err, results) => {
+      if (err) {
+        return reject('Error fetching random elements : ' + err);
+      }
+      resolve(results);
+    });
+  });
+}
+
+// Function to get ranged randomized elements among kanji or vocabulary
+const getRangedExercice = (mysql, limit, studyEnd, studyStart, type) => {
+  let query = 'SELECT * FROM'
+  if (type === 'vocabulary') {
+    query += ' vocabulary'
+  } else if (type === 'kanji') {
+    query += ' kanji'
+  }
+
+  query += ' WHERE id BETWEEN ? AND ? ORDER BY RAND() LIMIT ?'
+
+  return new Promise((resolve, reject) => {
+    mysql.query(query, [studyStart, studyEnd, limit], (err, results) => {
+      if (err) {
+        return reject('Error fetching random ranged elements : ' + err);
+      }
+      resolve(results);
+    });
+  });
+}
+
+
+//////// PROFILS 
+//
 // Function to get a prpfil information by its id
 const getUserProfil = (mysql, userId) => {
   const query = 'SELECT id, pro_id, email, name, nickname, role, tokens, daily_tokens, plan, plan_grade, ads, validate_account, reported FROM user WHERE id = ?'
@@ -255,6 +305,9 @@ const getProStudentsProfil = (mysql, proId) => {
   })
 }
 
+
+//////// JLPT MANAGER 
+//
 // Function to get existing user jlpt type manager row 
 const getExistingJlptManager = (mysql, type, userId) => {
   let query = 'SELECT * FROM user_jlpt_manager WHERE user_id = ? AND type = ?';
@@ -272,7 +325,7 @@ const getExistingJlptManager = (mysql, type, userId) => {
 
 // Function to insert new user jlpt type manager row
 const insertNewJlptManager = (mysql, type, userId) => {
-  let query = 'INSERT INTO user_jlpt_manager(user_id, type, study_start, study_limit) VALUES (?,?,0,10)';
+  let query = 'INSERT INTO user_jlpt_manager(user_id, type, study_start, study_end) VALUES (?,?,0,10)';
 
   const insertValues = [
     userId,
@@ -290,9 +343,9 @@ const insertNewJlptManager = (mysql, type, userId) => {
 };
 
 // Function to update an existing user jlpt type manager row 
-const updateExistingJlptManager = (newStudyLimit, mysql, rowId) => {
-  let query = 'UPDATE user_jlpt_manager SET study_limit = ? WHERE id = ?';
-  const updateValues = [newStudyLimit, rowId];
+const updateExistingJlptManager = (newStudyStart, newStudyEnd, mysql, rowId) => {
+  let query = 'UPDATE user_jlpt_manager SET study_start = ?, study_end = ?  WHERE id = ?';
+  const updateValues = [newStudyStart, newStudyEnd, rowId];
 
   return new Promise((resolve, reject) => {
     mysql.query(query, updateValues, (err, results) => {
@@ -304,4 +357,4 @@ const updateExistingJlptManager = (newStudyLimit, mysql, rowId) => {
   });
 };
 
-module.exports = { getExistingJlptManager, getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, getProProfil, getProStudentsProfil, getUserProfil, insertNewJlptManager, insertNewStat, insertNewGlobalStat, updateExistingJlptManager, updateStat }
+module.exports = { getExercice, getExistingJlptManager, getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, getProProfil, getProStudentsProfil, getRangedExercice, getUserProfil, insertNewJlptManager, insertNewStat, insertNewGlobalStat, updateExistingJlptManager, updateStat }

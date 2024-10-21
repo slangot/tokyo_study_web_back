@@ -2,11 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
-const { getLimitedUserElement, getLimitedUserStatsLines, getExistingJlptManager, insertNewJlptManager, updateExistingJlptManager } = require('../utils')
+const { getExercice, getLimitedUserElement, getLimitedUserStatsLines, getExistingJlptManager, getRangedExercice, insertNewJlptManager, updateExistingJlptManager } = require('../utils')
 
 router.get('/list-manager', async (req, res) => {
   const { userId } = req.query
   mysql.query('SELECT * FROM user_jlpt_manager WHERE user_id = ?', [parseInt(userId)], (err, result) => {
+
     if (err) {
       res.status(500).json({ error: 'Error selecting user jlpt' });
     } else {
@@ -16,7 +17,7 @@ router.get('/list-manager', async (req, res) => {
 })
 
 router.post('/update-list-manager', async (req, res) => {
-  const { limit, type, user_id } = req.body
+  const { study_end, study_start, type, user_id } = req.body
 
   try {
     const existingJlptManager = await getExistingJlptManager(mysql, type, user_id)
@@ -25,7 +26,7 @@ router.post('/update-list-manager', async (req, res) => {
       await insertNewJlptManager(mysql, type, user_id)
       res.status(200).json({ message: 'New jlpt manager row inserted successfully' });
     } else {
-      await updateExistingJlptManager(limit, mysql, existingJlptManager.id)
+      await updateExistingJlptManager(study_start, study_end, mysql, existingJlptManager.id)
       res.status(200).json({ message: 'Jlpt manager row updated successfully' });
     }
   } catch (err) {
@@ -34,24 +35,57 @@ router.post('/update-list-manager', async (req, res) => {
   }
 })
 
-// Route to update or create a statistic line
+// Route to fetch exercices elements by level; limit; mode and type
 router.post('/list', async (req, res) => {
   const { level, limit, mode, type, userId } = req.body;
 
   try {
-    const existingLines = await getLimitedUserStatsLines(mysql, limit, mode, type, userId)
-    const selectedLines = []
-    if (existingLines) {
-      for (const line of existingLines) {
-        const fetchedLine = await getLimitedUserElement(mysql, line.id, level, type)
-        if (fetchedLine) {
-          fetchedLine.status = line.status
-          fetchedLine.kanji_status = line?.kanji_status
-          fetchedLine.statId = line.id
-          selectedLines.push(fetchedLine)
+    if (mode === 'all') {
+      const fetchedLimitedExercice = await getExercice(mysql, level, limit, type)
+
+      if (fetchedLimitedExercice) {
+        res.status(200).send(fetchedLimitedExercice)
+      } else {
+        res.status(404).json({ error: 'Not found' })
+      }
+    } else if (mode === 'correct' || mode === 'false') {
+      const existingLines = await getLimitedUserStatsLines(mysql, limit, mode, type, userId)
+
+      const selectedLines = []
+      if (existingLines) {
+        for (const line of existingLines) {
+          const fetchedLine = await getLimitedUserElement(mysql, line.id, level, type)
+          if (fetchedLine) {
+            fetchedLine.status = line.status
+            fetchedLine.kanji_status = line?.kanji_status
+            fetchedLine.statId = line.id
+            selectedLines.push(fetchedLine)
+          }
+        }
+        res.status(200).send(selectedLines);
+      }
+    } else if (mode === 'studying') {
+
+      const existingJlptLimit = await getExistingJlptManager(mysql, type, userId)
+      if (existingJlptLimit) {
+        const existingRangedExercices = await getRangedExercice(mysql, limit, existingJlptLimit.study_end, existingJlptLimit.study_start, type)
+        if (existingRangedExercices) {
+          res.status(200).send(existingRangedExercices)
+        } else {
+          res.status(404).json({ error: 'Ranged exercices not found' })
+        }
+      } else {
+        const insertJlptLimit = await insertNewJlptManager(mysql, type, userId)
+        if (!insertJlptLimit) {
+          res.status(404).json({ error: 'Error inserting new limits' })
+        }
+        const rangedExercices = await getRangedExercice(mysql, limit, 10, 0, type)
+        if (rangedExercices) {
+          res.status(200).send(rangedExercices)
+        } else {
+          res.status(404).json({ error: 'Error fetching ranged exercices' })
         }
       }
-      res.status(200).send(selectedLines);
     }
   } catch (err) {
     console.error(err);
