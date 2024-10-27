@@ -2,8 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
-const { getExercice, getLimitedUserElement, getLimitedUserStatsLines, getExistingJlptManager, getRangedExercice, insertNewJlptManager, updateExistingJlptManager } = require('../utils')
+const { getExercice, getExistingStat, getLimitedUserElement, getLimitedUserStatsLines, getExistingJlptManager, getRangedExercice, insertNewJlptManager, updateExistingJlptManager } = require('../utils')
 
+/**
+ * Get the user jlpt start and end study limits
+ * @method GET 
+ * @route '/jlpt/list-manager'
+ * @request QUERY
+ * @param {string} userId - User ID
+ */
 router.get('/list-manager', async (req, res) => {
   const { userId } = req.query
   mysql.query('SELECT * FROM user_jlpt_manager WHERE user_id = ?', [parseInt(userId)], (err, result) => {
@@ -16,17 +23,27 @@ router.get('/list-manager', async (req, res) => {
   })
 })
 
+/**
+ * Update or create the user jlpt limits
+ * @method POST 
+ * @route '/jlpt/update-list-manager'
+ * @request BODY
+ * @param {number} studyEnd - Study end limit
+ * @param {number} studyStart - Study start limit
+ * @param {string} type - Exercice type
+ * @param {number} userId - User ID
+ */
 router.post('/update-list-manager', async (req, res) => {
-  const { study_end, study_start, type, user_id } = req.body
+  const { mode, studyEnd, studyStart, type, userId } = req.body
 
   try {
-    const existingJlptManager = await getExistingJlptManager(mysql, type, user_id)
+    const existingJlptManager = await getExistingJlptManager(mysql, type, userId)
 
     if (!existingJlptManager) {
-      await insertNewJlptManager(mysql, type, user_id)
+      await insertNewJlptManager(mysql, type, userId)
       res.status(200).json({ message: 'New jlpt manager row inserted successfully' });
     } else {
-      await updateExistingJlptManager(study_start, study_end, mysql, existingJlptManager.id)
+      await updateExistingJlptManager(mode, mysql, studyStart, studyEnd, existingJlptManager.id)
       res.status(200).json({ message: 'Jlpt manager row updated successfully' });
     }
   } catch (err) {
@@ -35,7 +52,17 @@ router.post('/update-list-manager', async (req, res) => {
   }
 })
 
-// Route to fetch exercices elements by level; limit; mode and type
+/**
+ * Fetch exercices elements by level; limit; mode and type
+ * @method POST 
+ * @route '/jlpt/list'
+ * @request BODY
+ * @param {number} level - Level
+ * @param {number} limit - Limit
+ * @param {string} mode - Exercice mode
+ * @param {string} type - Exercice type
+ * @param {number} userId - User ID
+ */
 router.post('/list', async (req, res) => {
   const { level, limit, mode, type, userId } = req.body;
 
@@ -66,11 +93,31 @@ router.post('/list', async (req, res) => {
       }
     } else if (mode === 'studying') {
 
+      // Fetch user defined limits
       const existingJlptLimit = await getExistingJlptManager(mysql, type, userId)
+
       if (existingJlptLimit) {
+        // Fetch limited elements between user limits by type
         const existingRangedExercices = await getRangedExercice(mysql, limit, existingJlptLimit.study_end, existingJlptLimit.study_start, type)
+        const selectedExercices = []
         if (existingRangedExercices) {
-          res.status(200).send(existingRangedExercices)
+
+          // For each elements we fetch if status exist and we add it
+          for (const exercice of existingRangedExercices) {
+
+            const fetchedExercice = await getExistingStat(mysql, type, userId, exercice.id)
+            if (fetchedExercice) {
+              exercice.status = fetchedExercice.status
+              exercice.kanji_status = fetchedExercice?.kanji_status
+              exercice.statId = fetchedExercice.id
+            } else {
+              exercice.status = null
+              exercice.kanji_status = null
+              exercice.statId = null
+            }
+            selectedExercices.push(exercice)
+          }
+          res.status(200).send(selectedExercices)
         } else {
           res.status(404).json({ error: 'Ranged exercices not found' })
         }
@@ -93,7 +140,13 @@ router.post('/list', async (req, res) => {
   }
 })
 
-// Route to update or create a statistic line
+/**
+ * Update or create an user statistic line
+ * @method POST 
+ * @route '/jlpt/stats'
+ * @request BODY
+ * @param {number} userId - User ID
+ */
 router.post('/stats', async (req, res) => {
   const { userId } = req.body;
 

@@ -3,8 +3,16 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+/**
+ * Route to fetch user JLPT vocabulary and its stats
+ * @method GET 
+ * @route '/vocabulary/jlpt'
+ * @request QUERY
+ * @param {string} level - Level
+ * @param {number} userId - User ID
+ */
 router.get('/jlpt', async (req, res) => {
-  const { level, limit, revision, userId } = req.query;
+  const { level, userId } = req.query;
 
   const getJLPTVocabulary = () => {
     let query = 'SELECT * FROM vocabulary WHERE level = ?';
@@ -51,9 +59,16 @@ router.get('/jlpt', async (req, res) => {
   }
 })
 
+/**
+ * Route to fetch vocabulary by its level and type
+ * @method GET 
+ * @route '/vocabulary'
+ * @request QUERY
+ * @param {string} level - Level
+ * @param {string} limit - Limit
+ * @param {string} revision - Vocabulary type
+ */
 router.get('/', (req, res) => {
-  // router.get('/vocabulary/:params', (req, res) => {
-  // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
   const { level, limit, revision } = req.query;
   let sql = 'SELECT * FROM';
 
@@ -169,6 +184,13 @@ router.get('/', (req, res) => {
 //   }
 // })
 
+/**
+ * Route to count vocabulary by its level
+ * @method GET 
+ * @route '/vocabulary/count'
+ * @request QUERY
+ * @param {string} level - Level
+ */
 router.get('/count', (req, res) => {
   const { level } = req.query;
   let sql = 'SELECT COUNT(*) AS count FROM';
@@ -188,6 +210,13 @@ router.get('/count', (req, res) => {
   });
 })
 
+/**
+ * Search into vocabulary table
+ * @method GET 
+ * @route '/vocabulary/search'
+ * @request QUERY
+ * @param {string} word - Search word
+ */
 router.get('/search', (req, res) => {
   const { word } = req.query;
   let sql = `SELECT * FROM vocabulary 
@@ -214,6 +243,11 @@ router.get('/search', (req, res) => {
   })
 })
 
+/**
+ * Fetch one verb
+ * @method GET 
+ * @route '/vocabulary/verb'
+ */
 router.get('/verb', (req, res) => {
   const sql = `SELECT * FROM verb ORDER BY RAND() LIMIT 1`
   mysql.query(sql, (err, result) => {
@@ -225,6 +259,11 @@ router.get('/verb', (req, res) => {
   })
 })
 
+/**
+ * Fetch one adjective
+ * @method GET 
+ * @route '/vocabulary/adjective'
+ */
 router.get('/adjective', (req, res) => {
   const sql = `SELECT * FROM vocabulary WHERE categories = "adjective" ORDER BY RAND() LIMIT 1`
   mysql.query(sql, (err, result) => {

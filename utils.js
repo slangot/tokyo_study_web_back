@@ -35,7 +35,7 @@ const getExistingStat = (mysql, type, userId, exerciceId) => {
 };
 
 // Function to insert new vocabulary, kanji or sentence exercice statistic
-const insertNewStat = (mysql, type, status, userId, exerciceId, statusType = null, statusOnly = false) => {
+const insertNewStat = (mysql, type, status, userId, exerciceId, typeStatus = null, statusOnly = false) => {
   let query = 'INSERT INTO ';
 
   const insertValues = [
@@ -47,14 +47,15 @@ const insertNewStat = (mysql, type, status, userId, exerciceId, statusType = nul
   const insertStatusOnlyValues = [
     userId,
     exerciceId,
-    statusType === 'status' ? status : 'not yet',
+    typeStatus === ('vocabularyStatus' || 'kanjiStatus') ? status : 'not yet',
   ]
 
   if (type === 'kanji') {
     query += 'user_stats_kanji (user_id, kanji_id, status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?)';
-    statusType === 'kanji_status' && insertStatusOnlyValues.push(status)
+    typeStatus === 'kanjiStatus' && insertStatusOnlyValues.push(status)
   } else if (type === 'vocabulary') {
     insertValues.push(null)
+    insertStatusOnlyValues.push(null)
     query += 'user_stats_vocabulary (user_id, vocabulary_id, status, kanji_status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?, ?)';
   } else if (type === 'sentence') {
     query += 'user_stats_sentence (user_id, sentence_id, status, total_count, correct_count, wrong_count) VALUES (?, ?, ?, ?, ?, ?)';
@@ -343,9 +344,16 @@ const insertNewJlptManager = (mysql, type, userId) => {
 };
 
 // Function to update an existing user jlpt type manager row 
-const updateExistingJlptManager = (newStudyStart, newStudyEnd, mysql, rowId) => {
-  let query = 'UPDATE user_jlpt_manager SET study_start = ?, study_end = ?  WHERE id = ?';
-  const updateValues = [newStudyStart, newStudyEnd, rowId];
+const updateExistingJlptManager = (mode, mysql, newStudyStart, newStudyEnd, rowId) => {
+  let query = 'UPDATE user_jlpt_manager SET'
+  const updateValues = [];
+  if (mode === 'increase') {
+    query += ' study_end = ?  WHERE id = ?';
+    updateValues.push(newStudyEnd, rowId);
+  } else {
+    query += ' study_start = ?, study_end = ?  WHERE id = ?';
+    updateValues.push(newStudyStart, newStudyEnd, rowId);
+  }
 
   return new Promise((resolve, reject) => {
     mysql.query(query, updateValues, (err, results) => {

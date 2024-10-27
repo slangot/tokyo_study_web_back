@@ -6,9 +6,14 @@ const bcrypt = require('bcrypt')
 const { getProProfil, getProStudentsProfil, getUserProfil } = require('../utils');
 // const { sendEmail } = require('../mail');
 
+/**
+ * Route to fetch users by role
+ * @method GET 
+ * @route '/user'
+ * @request QUERY
+ * @param {string} role - User role
+ */
 router.get('/', (req, res) => {
-  // router.get('/vocabulary/:params', (req, res) => {
-  // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
   const { role } = req.query;
   let sql = 'SELECT * FROM user';
 
@@ -25,6 +30,13 @@ router.get('/', (req, res) => {
   });
 })
 
+/**
+ * Route to count the users by role
+ * @method GET 
+ * @route '/user/count'
+ * @request QUERY
+ * @param {string} role - User role
+ */
 router.get('/count', (req, res) => {
   const { role } = req.query;
   let sql = 'SELECT COUNT(*) AS count FROM user';
@@ -41,6 +53,13 @@ router.get('/count', (req, res) => {
   });
 })
 
+/**
+ * Route to fetch an user by its id
+ * @method GET 
+ * @route '/user/id'
+ * @request QUERY
+ * @param {number} userId - User ID
+ */
 router.get('/id', (req, res) => {
   const { userId } = req.query;
   const sql = 'SELECT id, email, name, nickname, validate_account, pro_id, reported, role FROM user WHERE id = ?'
@@ -53,6 +72,13 @@ router.get('/id', (req, res) => {
   })
 })
 
+/**
+ * Route to fetch the complete profil of an user by its id
+ * @method GET 
+ * @route '/user/profil'
+ * @request QUERY
+ * @param {number} id - User ID
+ */
 router.get('/profil', async (req, res) => {
   const { id } = req.query
 
@@ -82,6 +108,14 @@ router.get('/profil', async (req, res) => {
   }
 })
 
+/** ----- WIP -----
+ * 
+ * Route to confirm the registration email by validated the pending_token
+ * @method GET 
+ * @route '/user/email-validation'
+ * @request QUERY
+ * @param {string} emailValidation - Email token validation
+ */
 router.post('/email-validation', async (req, res) => {
   const { emailValidation } = req.query
 
@@ -151,8 +185,23 @@ router.post('/email-validation', async (req, res) => {
 //   // res.status(200).send(result);
 // })
 
+/**
+ * Route to register an user
+ * @method POST 
+ * @route '/user/register'
+ * @request BODY
+ * @param {string} email - User email
+ * @param {string} name - User name
+ * @param {string} nickname - User nickname
+ * @param {string} password - User password
+ * @param {string} plan - User plan
+ * @param {string} planGrade - User plan grade
+ * @param {string} preferences - User preferences
+ * @param {number} proId - Pro ID
+ * @param {string} role - User role
+ */
 router.post('/register', async (req, res) => {
-  const { pro_id, name, nickname, email, password, role, plan, plan_grade, preferences } = req.body
+  const { email, name, nickname, password, plan, planGrade, preferences, proId, role } = req.body
 
   if (!password) {
     return res.status(400).json({ error: 'Password is required' });
@@ -163,7 +212,7 @@ router.post('/register', async (req, res) => {
     const pendingToken = await bcrypt.hash('account is pending to validation', 1)
 
     const registerQuery = 'INSERT INTO user (pro_id, name, nickname, email, password, role, preferences, tokens, daily_tokens, plan, plan_grade, ads, register_date, validate_account, pending_token, last_connection, reported) VALUES (?, ?, ?, ?, ?, ?, ?, 10, 10, ?, ?, 1, NOW(), 0, ?, NULL, 0)'
-    const values = [pro_id, name, nickname, email, passwordEncrypted, role, preferences, plan, plan_grade, pendingToken]
+    const values = [proId, name, nickname, email, passwordEncrypted, role, preferences, plan, planGrade, pendingToken]
     mysql.query(registerQuery, values, async (err, result) => {
       if (err) {
         console.error(err)
@@ -187,6 +236,14 @@ router.post('/register', async (req, res) => {
   }
 })
 
+/**
+ * Route to update user tokens
+ * @method PUT 
+ * @route '/user/tokenManager'
+ * @request BODY
+ * @param {number} tokenNumber - Tokens
+ * @param {number} userId - User ID
+ */
 router.put('/tokenManager', (req, res) => {
   const { tokenNumber, userId } = req.body
   const query = 'UPDATE user SET tokens = ? WHERE id = ?'
@@ -199,10 +256,20 @@ router.put('/tokenManager', (req, res) => {
   })
 })
 
+/**
+ * Route to update user plan
+ * @method PUT 
+ * @route '/user/plan'
+ * @request BODY
+ * @param {number} dailyTokens - Daily tokens
+ * @param {string} plan - User plan
+ * @param {string} planGrade - User plan grade
+ * @param {number} userId - User ID
+ */
 router.put('/plan', (req, res) => {
-  const { daily_tokens, plan, plan_grade, user_id } = req.body
+  const { dailyTokens, plan, planGrade, userId } = req.body
   const query = 'UPDATE user SET plan = ?, plan_grade = ?, daily_tokens = ? WHERE id = ?'
-  mysql.query(query, [plan, plan_grade, parseInt(daily_tokens), parseInt(user_id)], (err, result) => {
+  mysql.query(query, [plan, planGrade, parseInt(dailyTokens), parseInt(userId)], (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error updating user plan' });
     } else {
@@ -211,6 +278,15 @@ router.put('/plan', (req, res) => {
   })
 })
 
+/**
+ * Route to update user informations
+ * @method PUT 
+ * @route '/user/update'
+ * @request BODY
+ * @request QUERY
+ * @param {object} otherColumns - User informations to update
+ * @param {number} id - User ID
+ */
 router.put('/update', (req, res) => {
   const { id } = req.query;
   const { ...otherColumns } = req.body

@@ -6,14 +6,20 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 
-// Calculate Token with jwt
+/**
+ * Calculate Token with jwt
+ * @param {string} email - User email (defines by default to empty string)
+ */
 const calculateToken = (email = '') => {
   return jwt.sign({ log: email }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: '1800s'
   })
 }
 
-// //Get token from req
+/**
+ * Get token from req
+ * @param {object} req - Headers req authorization
+ */
 const getToken = req => {
   if (
     req.headers.authorization &&
@@ -26,6 +32,14 @@ const getToken = req => {
   return null
 }
 
+/**
+ * User Login
+ * @method POST 
+ * @route '/auth/login'
+ * @request BODY
+ * @param {string} email - User email
+ * @param {string} password - User password
+ */
 router.post('/login', async (req, res) => {
 
   const updateLatestConnection = (userId) => {
@@ -79,7 +93,13 @@ router.post('/login', async (req, res) => {
   }
 })
 
-// post route with a jwt token checking
+/**
+ * Protected routes checker with JWT Token
+ * @method POST 
+ * @route '/auth/protected'
+ * @request BODY
+ * @param {object} req - Headers req authorization
+ */
 router.post('/protected', (req, res) => {
   const token = getToken(req)
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {

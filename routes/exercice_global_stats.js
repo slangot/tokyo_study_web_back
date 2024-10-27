@@ -4,7 +4,15 @@ const mysql = require('../db-config');
 const router = express.Router();
 const { getExistingStat, insertNewGlobalStat, updateStat } = require('../utils')
 
-
+/**
+ * Global Statistics Exercices Update
+ * @method POST 
+ * @route '/egs/'
+ * @request BODY
+ * @param {string} status - Exercice status
+ * @param {string} type - Exercice type
+ * @param {number} userId - User ID
+ */
 router.post('/', async (req, res) => {
   const { status, type, userId } = req.body;
 

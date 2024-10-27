@@ -3,6 +3,11 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+/**
+ * Fetch all kanji keys
+ * @method GET 
+ * @route '/kanji_keys/all'
+ */
 router.get('/all', async (req, res) => {
   try {
     const kanjiKeysQuery = 'SELECT * FROM kanji_keys'

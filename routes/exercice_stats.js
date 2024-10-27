@@ -4,7 +4,16 @@ const mysql = require('../db-config');
 const router = express.Router();
 const { getExistingStat, insertNewStat, updateStat } = require('../utils')
 
-// Route to update or create a statistic line
+/**
+ * Specific Statistics Exercices Update
+ * @method POST 
+ * @route '/es/'
+ * @request BODY
+ * @param {number} exerciceId - Exercice ID
+ * @param {string} status - Exercice status
+ * @param {string} type - Exercice type
+ * @param {number} userId - User ID
+ */
 router.post('/update', async (req, res) => {
   const { exerciceId, status, type, userId } = req.body;
 
@@ -24,18 +33,27 @@ router.post('/update', async (req, res) => {
   }
 });
 
-
-// Route to only update status (if it doesn't exist, create the ligne but no counter)
+/**
+ * Route to only update status (if it doesn't exist, create the ligne but no counter)
+ * @method POST 
+ * @route '/es/update-status'
+ * @request BODY
+ * @param {number} elementId - Element ID
+ * @param {string} status - Exercice status
+ * @param {string} typeStatus - Exercice type status
+ * @param {string} type - Exercice type
+ * @param {number} userId - User ID
+ */
 router.post('/update-status', async (req, res) => {
-  const { status, type, type_status, element_id, user_id } = req.body;
+  const { elementId, status, type, typeStatus, userId } = req.body;
 
   try {
-    const existingStat = await getExistingStat(mysql, type, user_id, element_id);
+    const existingStat = await getExistingStat(mysql, type, userId, elementId);
     if (!existingStat) {
-      await insertNewStat(mysql, type, status, user_id, element_id, type_status, true);
+      await insertNewStat(mysql, type, status, userId, elementId, typeStatus, true);
       res.json({ message: 'New stat inserted successfully' });
     } else {
-      await updateStat(mysql, existingStat, status, type, true, type_status);
+      await updateStat(mysql, existingStat, status, type, true, typeStatus);
       res.json({ message: 'Stat updated successfully' });
     }
   } catch (err) {

@@ -3,9 +3,15 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+/**
+ * Fetch sentence exercice by level and limit
+ * @method GET 
+ * @route '/sentence'
+ * @request QUERY
+ * @param {number} level - Level
+ * @param {number} limit - Limit
+ */
 router.get('/', (req, res) => {
-  // router.get('/sentence/:params', (req, res) => {
-  // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
   const { level, limit } = req.query;
   let sql = 'SELECT * FROM';
   if (level === '6') {
@@ -27,6 +33,13 @@ router.get('/', (req, res) => {
   });
 })
 
+/**
+ * Count the number of sentences by level
+ * @method GET 
+ * @route '/sentence/count/:level'
+ * @request QUERY
+ * @param {number} level - Level
+ */
 router.get('/count/:level', (req, res) => {
   const { level } = req.query;
   let sql = 'SELECT COUNT(*) AS count FROM';
@@ -46,6 +59,13 @@ router.get('/count/:level', (req, res) => {
   });
 })
 
+/**
+ * Search into sentences
+ * @method GET 
+ * @route '/sentence/search'
+ * @request QUERY
+ * @param {string} word - Search word
+ */
 router.get('/search', (req, res) => {
   const { word } = req.query;
   let sql = `SELECT * FROM sentence 
@@ -74,7 +94,13 @@ router.get('/search', (req, res) => {
   })
 })
 
-
+/**
+ * Post a new sentence
+ * @method POST 
+ * @route '/sentence/new'
+ * @request BODY
+ * @param {object} data - A sentence object
+ */
 router.post('/new', (req, res) => {
   const { data } = req.body
 

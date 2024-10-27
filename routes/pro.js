@@ -3,6 +3,14 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+/**
+ * Pro registration
+ * @method POST 
+ * @route '/pro/register'
+ * @request BODY
+ * @param {number} plan - Pro plan choice
+ * @param {string} phone - Pro phone number
+ */
 router.post('/register', async (req, res) => {
   const { plan, phone } = req.body
 
@@ -21,11 +29,19 @@ router.post('/register', async (req, res) => {
   }
 })
 
+/**
+ * Update pro user ID registration
+ * @method POST 
+ * @route '/pro/update-id'
+ * @request BODY
+ * @param {number} proId - Pro ID
+ * @param {number} userId - User ID
+ */
 router.post('/update-id', async (req, res) => {
-  const { pro_id, user_id } = req.body
+  const { proId, userId } = req.body
 
   const updateQuery = 'UPDATE pro SET user_id = ? WHERE id = ?'
-  mysql.query(updateQuery, [user_id, pro_id], (err, result) => {
+  mysql.query(updateQuery, [userId, proId], (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error updating pro id' });
     } else {

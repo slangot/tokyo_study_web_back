@@ -3,10 +3,18 @@ const express = require('express');
 const mysql = require('../db-config');
 const router = express.Router();
 
+/**
+ * Fetch a kanji with its status
+ * @method GET 
+ * @route '/kanji/jlpt'
+ * @request QUERY
+ * @param {number} level - Level
+ * @param {number} userId - User ID
+ */
 router.get('/jlpt', async (req, res) => {
-  const { level, limit, revision, userId } = req.query;
+  const { level, userId } = req.query;
 
-  const getJLPTKanji = () => {
+  const getJLPTKanji = (level) => {
     let query = 'SELECT * FROM kanji WHERE level = ?';
 
     return new Promise((resolve, reject) => {
@@ -19,7 +27,7 @@ router.get('/jlpt', async (req, res) => {
     });
   };
 
-  const getUserStatus = (id) => {
+  const getUserStatus = (userId, id) => {
     let query = 'SELECT * FROM user_stats_kanji WHERE user_id = ? AND kanji_id = ?'
 
     return new Promise((resolve, reject) => {
@@ -33,9 +41,9 @@ router.get('/jlpt', async (req, res) => {
   };
 
   try {
-    const allJLPTSelectedLevel = await getJLPTKanji();
+    const allJLPTSelectedLevel = await getJLPTKanji(level);
     for (const element of allJLPTSelectedLevel) {
-      const existingStat = await getUserStatus(element.id);
+      const existingStat = await getUserStatus(userId, element.id);
       if (existingStat) {
         element.status = existingStat.status;
       } else {
@@ -49,9 +57,16 @@ router.get('/jlpt', async (req, res) => {
   }
 })
 
+/**
+ * Fetch limited kanji by level and revision mode
+ * @method GET 
+ * @route '/kanji'
+ * @request QUERY
+ * @param {number} level - Level
+ * @param {number} limit - Limit
+ * @param {string} revision - Revison mode
+ */
 router.get('/', (req, res) => {
-  // router.get('/kanji/:params', (req, res) => {
-  // FRONT : https://mydomain.dm/fruit/{"name":"My fruit name", "color":"The color of the fruit"}
   const { level, revision, limit } = req.query;
   let sql = 'SELECT * FROM kanji';
 
@@ -85,7 +100,6 @@ router.get('/', (req, res) => {
     values.push(parseInt(limit));
   }
 
-
   mysql.query(sql, values, (err, result) => {
     if (err) {
       res.status(500).json({ error: 'Error retrieving kanji' });
@@ -95,6 +109,13 @@ router.get('/', (req, res) => {
   });
 })
 
+/**
+ * Fetch and count kanji by level
+ * @method GET 
+ * @route '/kanji/count'
+ * @request QUERY
+ * @param {number} level - Level
+ */
 router.get('/count', (req, res) => {
   const { level } = req.query;
   let sql = 'SELECT COUNT(*) AS count FROM kanji';
@@ -110,6 +131,13 @@ router.get('/count', (req, res) => {
   });
 })
 
+/**
+ * Fetch detailed kanji
+ * @method GET 
+ * @route '/kanji/detailed'
+ * @request QUERY
+ * @param {string} search - Kanji search
+ */
 router.get('/detailed', (req, res) => {
   const { search } = req.query;
   const searchLike = `%${search}%`;
@@ -118,7 +146,7 @@ router.get('/detailed', (req, res) => {
     return res.status(400).json({ error: 'Search parameter is required' });
   }
 
-  // Promesse pour la requête kanji
+  // Promise for kanji request
   const getKanji = new Promise((resolve, reject) => {
     const kanjiQuery = 'SELECT * FROM kanji WHERE kanji = ?';
     mysql.query(kanjiQuery, [search], (err, results) => {
@@ -130,7 +158,7 @@ router.get('/detailed', (req, res) => {
     });
   });
 
-  // Promesse pour la requête vocabulary_extra
+  // Promise for vocabulary_extra request
   const getVocabulary = new Promise((resolve, reject) => {
     const vocabularyQuery = "SELECT * FROM vocabulary_extra WHERE kanji LIKE ? LIMIT 10";
     mysql.query(vocabularyQuery, [searchLike], (err, results) => {
@@ -142,7 +170,7 @@ router.get('/detailed', (req, res) => {
     });
   });
 
-  // Promesse pour la requête sentence_extra
+  // Promise for sentence_extra request
   const getSentences = new Promise((resolve, reject) => {
     const sentenceQuery = 'SELECT * FROM sentence_extra WHERE kanji LIKE ? LIMIT 5';
     mysql.query(sentenceQuery, [searchLike], (err, results) => {
@@ -154,7 +182,7 @@ router.get('/detailed', (req, res) => {
     });
   });
 
-  // Exécuter toutes les promesses et envoyer la réponse une fois toutes résolues
+  // Executes all promises and return a response when all resolved
   Promise.all([getKanji, getVocabulary, getSentences])
     .then(([kanji, vocabulary, sentences]) => {
       if (!kanji) {
@@ -172,6 +200,13 @@ router.get('/detailed', (req, res) => {
     });
 });
 
+/**
+ * Search into kanji table
+ * @method GET 
+ * @route '/kanji/search'
+ * @request QUERY
+ * @param {string} word - Search word
+ */
 router.get('/search', (req, res) => {
   const { word } = req.query;
   let sql = `SELECT * FROM kanji 
@@ -191,7 +226,102 @@ router.get('/search', (req, res) => {
   })
 })
 
+// router.post('/kanji', (req, res) => {
+//   const { newKanji } = req.body;
 
+//   // On initialise une promesse pour chaque insertion
+//   const promises = newKanji.map(kanji => {
+//     const query = 'INSERT INTO new_kanji ( kanji, kunyomi, onyomi, english, french, italian, german, spanish, romaji, strokes, strokes_images, video_poster, video_mp4, video_webm, radical, radical_history_images, hint, level, grade ) VALUES (?, ?, ?, ?, "", "", "", "", "", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+
+//     const values = [
+//       kanji.kanji,
+//       kanji.kunyomi,
+//       kanji.onyomi,
+//       kanji.english,
+//       kanji.strokes,
+//       kanji.strokes_images,
+//       kanji.video_poster,
+//       kanji.video_mp4,
+//       kanji.video_webm,
+//       kanji.radical,
+//       kanji.radical_history_images,
+//       kanji.hint,
+//       parseInt(kanji.level),
+//       parseInt(kanji.grade)
+//     ];
+
+//     return new Promise((resolve, reject) => {
+//       mysql.query(query, values, (err, result) => {
+//         if (err) {
+//           reject(err);
+//         } else {
+//           resolve(result);
+//         }
+//       });
+//     });
+//   });
+
+//   // On attend que toutes les promesses soient complétées
+//   Promise.all(promises)
+//     .then(results => {
+//       res.status(200).send({ message: 'All kanji inserted successfully', results });
+//     })
+//     .catch(error => {
+//       res.status(500).json({ error: 'Error inserting kanji', details: error });
+//     });
+// });
+
+// router.post('/kanjiOnce', (req, res) => {
+//   const { newKanji } = req.body;
+//   const query = 'INSERT INTO new_kanji ( kanji, kunyomi, onyomi, english, french, italian, german, spanish, romaji, strokes, strokes_images, video_poster, video_mp4, video_webm, radical, radical_history_images, hint, level, grade ) VALUES (?, ?, ?, ?, "", "", "", "", "", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+
+//   const values = [
+//     newKanji.kanji,
+//     newKanji.kunyomi,
+//     newKanji.onyomi,
+//     newKanji.english,
+//     newKanji.strokes,
+//     newKanji.strokes_images,
+//     newKanji.video_poster,
+//     newKanji.video_mp4,
+//     newKanji.video_webm,
+//     newKanji.radical,
+//     newKanji.radical_history_images,
+//     newKanji.hint,
+//     parseInt(newKanji.level),
+//     parseInt(newKanji.grade)
+//   ];
+
+//   mysql.query(query, values, (err, result) => {
+//     if (err) {
+//       res.status(500).json({ error: 'Error inserting kanji', details: error });
+//     } else {
+//       res.status(200).send({ message: 'Kanji inserted successfully', result });
+//     }
+//   });
+// });
+
+// router.post('/updateKanjiOnce', (req, res) => {
+//   const { kanji, level, translation } = req.body
+//   const query = "UPDATE new_kanji SET french = ?, level = ? WHERE kanji = ?"
+//   mysql.query(query, [translation, level, kanji], (err, result) => {
+//     if (err) {
+//       res.status(500).json({ error: 'Error updating kanji' });
+//     } else {
+//       res.status(200).send(result);
+//     }
+//   })
+// })
+
+/**
+ * Kanji status update
+ * @method PUT 
+ * @route '/jlpt/update'
+ * @request QUERY
+ * @param {string} status - Status
+ * @param {string} jlptStatus - JLPT Status
+ * @param {number} id - Kanji ID
+ */
 router.put('/update', (req, res) => {
   const { id, status, jlptStatus } = req.query;
   let updateQuery = 'UPDATE kanji SET'
